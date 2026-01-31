@@ -1,5 +1,8 @@
+import gsap from "gsap";
 import *  as THREE from "three"
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+
 
 
 
@@ -67,13 +70,17 @@ document.body.appendChild(renderer.domElement)
 const geometry = new THREE.BoxGeometry()
 
 
-const material = new THREE.MeshStandardMaterial({color: 'red'})
+// const material = new THREE.MeshStandardMaterial({color: 'red'})
 
-const cube =  new THREE.Mesh(geometry, material)
+
+const originalMaterial = new THREE.MeshStandardMaterial({color:'red'})
+const highlightMaterial = new THREE.MeshStandardMaterial({color:'yellow ' ,emissive:"white" , emissiveIntensity:0.5})
+
+const cube =  new THREE.Mesh(geometry, originalMaterial)
 
 cube.position.set(0 ,0 ,0)
 
-scene.add(cube)
+// scene.add(cube)
 
 
 
@@ -87,14 +94,6 @@ const mouse = new THREE.Vector2()
 function MouseEvent (event){
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-    raycaster.setFromCamera(mouse, camera)
-
-    const intersects =  raycaster.intersectObjects(scene.children)
-
-    if(intersects.length > 0)
-        intersects[0].object.material.color.set('blue')
-
 }
 
 window.addEventListener('mousemove',MouseEvent)
@@ -109,7 +108,47 @@ const sphereMaterial = new THREE.MeshPhongMaterial({
 
 const sphere = new THREE.Mesh(sphereGeometry, sphereMaterial)
 sphere.position.set(2,0,0)
-scene.add(sphere)
+// scene.add(sphere)
+
+
+
+//load
+
+
+const loader = new GLTFLoader()
+
+loader.load(
+    'models/robot/scene.gltf',
+    (gltf)=>{
+        const  model = gltf.scene
+        model.scale.set(2,2,2)
+        model.position.set(1,0,1 )
+
+        scene.add(model)
+    },
+    (xhr)=>{
+        console.log((xhr.loaded / xhr.total * 100) + "% loaded")
+    },
+    (error)=>{
+        console.error("Error")
+    }
+)
+
+//Gsap
+
+// gsap.to(cube.position,{
+//     y:2,
+//     x:1,
+//     duration:1,
+//     ease:'power1.inOut',
+//     repeat:-1,
+//     yoyo:true
+// })
+
+//end gsap
+
+
+
 
 
 // const torus = new THREE.Mesh(
@@ -134,9 +173,35 @@ scene.add(sphere)
 // scene.add(plane)
 
 
+let isHovered = false
+
+
+
 function animate(){
     requestAnimationFrame(animate)
 
+
+    raycaster.setFromCamera(mouse,camera)
+    
+    const intersects = raycaster.intersectObject(cube)
+
+    if(intersects.length > 0 && !isHovered){
+
+        cube.material = highlightMaterial
+        isHovered = true
+
+    gsap.to(cube.scale,{x:1.5, y:1.5 ,z:1.5,duration:0.5, ease:"power1.out"})
+    }
+        
+    else if(intersects.length == 0 && isHovered){
+        cube.material = originalMaterial
+        isHovered = false
+
+    gsap.to(cube.scale,{x:1, y:1,z:1, duration:0.5, ease:"power1.out"})
+
+    }
+
+    
     // cube.rotation.x += 0.01
     // cube.rotation.y += 0.01
 
@@ -146,7 +211,7 @@ function animate(){
     
     // torus.rotation.x += 0.01
     // torus.rotation.y += 0.01
-    
+    renderer.setClearColor('lightblue')
     controls.update()
     renderer.render(scene, camera)
 }
